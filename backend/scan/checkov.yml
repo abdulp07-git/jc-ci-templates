@@ -1,18 +1,21 @@
 steps:
   - script: |
-      mkdir -p $(Build.SourcesDirectory)/checkov-results
-      checkov -d . \
-        --framework terraform \
+      ls - ls
+      mkdir -p $(Build.SourcesDirectory)/checkov-docker-results
+      checkov -d $(DockerDir) \
+        --framework dockerfile \
         --output cli \
         --output junitxml \
-        --output-file $(Build.SourcesDirectory)/checkov-results/
+        --output-file $(Build.SourcesDirectory)/checkov-docker-results/
       echo "Checkov scan complete."
-    displayName: 'Run Checkov Scan'
+    env:
+      DockerDir: '${{ parameters.AppSourceDir }}'
+    displayName: 'Checkov Docker Scan'
 
   - task: PublishTestResults@2
-    displayName: 'Publish Checkov JUnit Results'
+    displayName: 'Publish Checkov Results'
     inputs:
       testResultsFormat: 'JUnit'
-      testResultsFiles: '$(Build.SourcesDirectory)/checkov-results/results_junitxml.xml'
-      testRunTitle: 'Checkov IaC Security Scan'
+      testResultsFiles: '$(Build.SourcesDirectory)/checkov-docker-results/results_junitxml.xml'
+      testRunTitle: 'Checkov Docker Security Scan'
     condition: succeededOrFailed()

@@ -1,13 +1,26 @@
 parameters:
   - name: AppName
     type: string
-  - name: BuildSourceDir
+  - name: AppSourceDir
     type: string
+  - name: DeployTo
+    type: object
+    default: [] 
+
+variables:
+  - group: jc-infra-vars
+  - name: AcrName
+    value: app123.azurecr.io
 
 stages:
-  - stage: Scan
-    displayName: 'Scan'
+  - stage: Build
+    displayName: 'Build'
     jobs:
+      - template: build-publish.yml
+        parameters:
+          AppName: '${{ parameters.AppName }}'
+          AppSourceDir: '${{ parameters.AppSourceDir }}'
       - template: scan.yml
         parameters:
-          BuildSourceDir: '${{ parameters.BuildSourceDir }}'
+          AppName: '${{ parameters.AppName }}'
+          AppSourceDir: '${{ parameters.AppSourceDir }}'
