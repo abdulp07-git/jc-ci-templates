@@ -1,0 +1,57 @@
+parameters:
+  - name: AppName
+    type: string
+  - name: AppSourceDir
+    type: string
+
+steps:
+  - script: |
+      az login --identity
+      az acr login --name $(AcrName)
+    displayName: 'ACR Login'
+    
+  - task: trivy@2
+    name: TrivyRepo
+    displayName: 'Trivy Repo Scan'
+    inputs:
+      version: 'latest'
+      type: 'filesystem'
+      target: '.'
+      scanners: 'misconfig,vuln,secret'
+      ignoreUnfixed: true
+      ignoreScanErrors: true
+      reports: 'junit'
+      publish: true
+
+  - task: trivy@2
+    name: TrivyDocker
+    displayName: 'Trivy Docker Scan'
+    inputs:
+      version: 'latest'
+      type: 'image'
+      target: $(AcrName)/${{ parameters.AppName }}:$(Build.BuildNumber)
+      scanners: 'misconfig,vuln,secret'
+      ignoreUnfixed: true
+      ignoreScanErrors: true
+      reports: 'junit'
+      publish: true
+
+  - task: PublishTestResults@2
+    displayName: 'Publish Trivy Results'
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: |
+        $(TrivyRepo.junitReport)
+      searchFolder: '$(Agent.TempDirectory)'
+      testRunTitle: 'Trivy Repo Scan'
+      publishRunAttachments: false
+
+  - task: PublishTestResults@2
+    displayName: 'Publish Trivy Results'
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: |
+        $(TrivyDocker.junitReport)
+      searchFolder: '$(Agent.TempDirectory)'
+      testRunTitle: 'Trivy Docker Scan'
+      publishRunAttachments: false

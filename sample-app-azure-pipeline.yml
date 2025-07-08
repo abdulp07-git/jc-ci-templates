@@ -1,0 +1,20 @@
+resources:
+  repositories:
+    - repository: ci-templates
+      type: git
+      name: ci-templates
+      ref: v1.0.0
+
+trigger:
+  - pipeline
+
+pool: agent-pool
+
+extends:
+  template: backend/main.yml@ci-templates
+  parameters:
+    AppName: 'testapp'
+    AppSourceDir: 'test'
+    DeployTo:
+      - qa
+      - dev

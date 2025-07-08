@@ -1,0 +1,29 @@
+parameters:
+  - name: AppName
+    type: string
+  - name: AppSourceDir
+    type: string
+  - name: DeployTo
+    type: object
+    default: [] 
+
+variables:
+  - group: jc-infra-vars
+  - name: AcrName
+    value: jcappacr2025.azuricr.io
+  - name: DOCKER_BUILDKIT
+    value: 1
+
+stages:
+  - stage: Build
+    displayName: 'Build and Scan'
+    jobs:
+      - template: build-publish.yml
+        parameters:
+          AppName: '${{ parameters.AppName }}'
+          AppSourceDir: '${{ parameters.AppSourceDir }}'
+
+      - template: scan-analyse.yml
+        parameters:
+          AppName: '${{ parameters.AppName }}'
+          AppSourceDir: '${{ parameters.AppSourceDir }}'

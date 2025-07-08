@@ -1,0 +1,20 @@
+parameters:
+  - name: AppName
+    type: string
+  - name: AppSourceDir
+    type: string
+
+jobs:
+- job: sca_check
+  dependsOn: build
+  displayName: 'Scan and Analyse'
+  steps:
+  - template: scan/checkov.yml
+    parameters:
+      AppName: '${{ parameters.AppName }}'
+      AppSourceDir: '${{ parameters.AppSourceDir }}'
+      
+  - template: scan/trivy.yml
+    parameters:
+      AppName: '${{ parameters.AppName }}'
+      AppSourceDir: '${{ parameters.AppSourceDir }}'
