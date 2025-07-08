@@ -1,12 +1,13 @@
 steps:
   - script: |
-      ls - ls
-      mkdir -p $(Build.SourcesDirectory)/checkov-docker-results
-      checkov -d $(DockerDir) \
+      ls -ls
+      echo ${ENV}
+      mkdir -p $(Agent.TempDirectory)/checkov-docker-results
+      checkov -d ${ENV} \
         --framework dockerfile \
         --output cli \
         --output junitxml \
-        --output-file $(Build.SourcesDirectory)/checkov-docker-results/
+        --output-file $(Agent.TempDirectory)/checkov-docker-results/
       echo "Checkov scan complete."
     env:
       DockerDir: '${{ parameters.AppSourceDir }}'
@@ -16,6 +17,6 @@ steps:
     displayName: 'Publish Checkov Results'
     inputs:
       testResultsFormat: 'JUnit'
-      testResultsFiles: '$(Build.SourcesDirectory)/checkov-docker-results/results_junitxml.xml'
+      testResultsFiles: '$(Agent.TempDirectory)/checkov-docker-results/results_junitxml.xml'
       testRunTitle: 'Checkov Docker Security Scan'
     condition: succeededOrFailed()
