@@ -6,7 +6,7 @@ parameters:
 
 jobs:
 - job: build
-  displayName: 'Run Build'
+  displayName: 'Build and Publish'
   steps:
   - script: |
       az login --identity

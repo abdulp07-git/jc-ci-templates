@@ -1,6 +1,6 @@
 resources:
   repositories:
-    - repository: ci-templates
+    - repository: oneonone_cp_ciTemplates
       type: git
       name: ci-templates
       ref: v1.0.0
@@ -13,8 +13,8 @@ pool: agent-pool
 extends:
   template: backend/main.yml@ci-templates
   parameters:
-    AppName: 'testapp'
-    AppSourceDir: 'test'
+    AppName: 'trialanddemo'
+    AppSourceDir: . 
     DeployTo:
       - qa
       - dev

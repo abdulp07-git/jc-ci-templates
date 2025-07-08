@@ -10,7 +10,7 @@ parameters:
 variables:
   - group: jc-infra-vars
   - name: AcrName
-    value: app123.azurecr.io
+    value: jcdevacr2025.azurecr.io
 
 stages:
   - stage: Build
