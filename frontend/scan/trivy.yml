@@ -1,0 +1,23 @@
+steps:
+  - task: trivy@2
+    name: TrivyCurrent
+    displayName: 'Scan current repository as filesystem'
+    inputs:
+      version: 'latest'
+      type: 'filesystem'
+      target: '.'
+      scanners: 'misconfig,vuln,secret'
+      ignoreUnfixed: true
+      ignoreScanErrors: true
+      reports: 'html, junit'
+      publish: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: |
+        $(TrivyCurrent.junitReport)
+        $(TrivyPrivate.junitReport)
+      searchFolder: '$(Agent.TempDirectory)'
+      testRunTitle: 'Trivy'
+      publishRunAttachments: false
