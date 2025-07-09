@@ -30,4 +30,5 @@ jobs:
 
             - script: |
                 kubectl apply -f $(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml
-              displayName: 'AKS Login'
+                kubectl rollout status deployment/${{ parameters.AppName }} -n ${{ parameters.AppNamespace }} --watch=true --timeout=10m
+              displayName: 'Deploy to AKS'
