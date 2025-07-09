@@ -12,7 +12,7 @@ parameters:
 variables:
   - group: jc-infra-vars
   - name: AcrName
-    value: app123.azurecr.io
+    value: jcappacr2025.azurecr.io
   - name: DOCKER_BUILDKIT
     value: 1
 
