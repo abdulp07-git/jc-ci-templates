@@ -71,14 +71,14 @@ service:
 
 ingress:
   enabled: true
-  className: ""
+  className: "nginx"
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: admin.jc.com
+    - host: dev.intodepth.in
       paths:
-        - path: /
+        - path: /api/trial-and-demo
           pathType: ImplementationSpecific
   tls: []
   #  - secretName: chart-example-tls

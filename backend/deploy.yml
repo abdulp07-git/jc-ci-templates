@@ -5,11 +5,13 @@ parameters:
     type: string
   - name: AppNamespace
     type: string
+  - name: AksEnv
+    type: string
 
 jobs:
   - deployment: deploy
     displayName: 'Deploy'
-    environment: 'jc-infra-deploy'
+    environment: 'jc-app-deploy-${{ parameters.AksEnv }}'
     timeoutInMinutes: 15
     strategy:
       runOnce:
@@ -17,5 +19,15 @@ jobs:
           steps:
             - script: |
                 az login --identity
+                az aks get-credentials --resource-group jc-${{ parameters.AksEnv }}-spoke-rg --name jc-${{ parameters.AksEnv }}-spoke-aks --overwrite-existing --admin
               displayName: 'AKS Login'
-                
+
+            - task: DownloadPipelineArtifact@2
+              displayName: 'Get helm Manifest'
+              inputs:
+                artifactName: '${{ parameters.AppName }}-mainfest.yaml'
+                path: '$(Agent.TempDirectory)'
+
+            - script: |
+                kubectl apply -f $(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml
+              displayName: 'AKS Login'

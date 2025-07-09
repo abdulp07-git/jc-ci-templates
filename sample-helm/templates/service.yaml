@@ -5,6 +5,7 @@ metadata:
   namespace: {{ .Values.appNamespace }}
   labels:
     app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/version: "{{ .Values.appVersion }}"
 spec:
   type: {{ .Values.service.type }}
   ports:

@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Values.appNamespace }}
   labels:
     app.kubernetes.io/name: {{ .Chart.Name }}
-    app.kubernetes.io/version: {{ .Values.appVersion }}
+    app.kubernetes.io/version: "{{ .Values.appVersion }}"
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

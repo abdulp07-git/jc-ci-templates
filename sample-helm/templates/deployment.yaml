@@ -18,6 +18,7 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ .Chart.Name }}
       app.kubernetes.io/version: "{{ .Values.appVersion }}"
+  template:
     metadata:
       {{- with .Values.podAnnotations }}
       annotations:

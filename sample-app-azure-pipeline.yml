@@ -15,6 +15,4 @@ extends:
   parameters:
     AppName: 'testapp'
     AppSourceDir: 'test'
-    DeployTo:
-      - qa
-      - dev
+    AppNamespace: 'shopping'

@@ -5,9 +5,6 @@ parameters:
     type: string
   - name: AppNamespace
     type: string
-  - name: DeployTo
-    type: object
-    default: [] 
 
 variables:
   - group: jc-infra-vars
@@ -31,7 +28,7 @@ stages:
           AppName: '${{ parameters.AppName }}'
           AppSourceDir: '${{ parameters.AppSourceDir }}'
 
-  - stage: Deploy
+  - stage: Deploy_dev
     dependsOn: Build
     displayName: 'Deploy to Dev'
     jobs:
@@ -40,3 +37,26 @@ stages:
           AppName: '${{ parameters.AppName }}'
           AppSourceDir: '${{ parameters.AppSourceDir }}'
           AppNamespace: '${{ parameters.AppNamespace }}'
+          AksEnv: 'dev'
+
+  - stage: Deploy_qa
+    dependsOn: Deploy_dev
+    displayName: 'Deploy to Qa'
+    jobs:
+      - template: deploy.yml
+        parameters:
+          AppName: '${{ parameters.AppName }}'
+          AppSourceDir: '${{ parameters.AppSourceDir }}'
+          AppNamespace: '${{ parameters.AppNamespace }}'
+          AksEnv: 'qa'
+
+  - stage: Deploy_prod
+    dependsOn: Deploy_qa
+    displayName: 'Deploy to Prod'
+    jobs:
+      - template: deploy.yml
+        parameters:
+          AppName: '${{ parameters.AppName }}'
+          AppSourceDir: '${{ parameters.AppSourceDir }}'
+          AppNamespace: '${{ parameters.AppNamespace }}'
+          AksEnv: 'prod'
