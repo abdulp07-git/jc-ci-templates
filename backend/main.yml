@@ -3,6 +3,8 @@ parameters:
     type: string
   - name: AppSourceDir
     type: string
+  - name: AppNamespace
+    type: string
   - name: DeployTo
     type: object
     default: [] 
@@ -10,7 +12,7 @@ parameters:
 variables:
   - group: jc-infra-vars
   - name: AcrName
-    value: jcappacr2025.azurecr.io
+    value: app123.azurecr.io
   - name: DOCKER_BUILDKIT
     value: 1
 
@@ -22,8 +24,19 @@ stages:
         parameters:
           AppName: '${{ parameters.AppName }}'
           AppSourceDir: '${{ parameters.AppSourceDir }}'
+          AppNamespace: '${{ parameters.AppNamespace }}'
 
       - template: scan-analyse.yml
         parameters:
           AppName: '${{ parameters.AppName }}'
           AppSourceDir: '${{ parameters.AppSourceDir }}'
+
+  - stage: Deploy
+    dependsOn: Build
+    displayName: 'Deploy to Dev'
+    jobs:
+      - template: deploy.yml
+        parameters:
+          AppName: '${{ parameters.AppName }}'
+          AppSourceDir: '${{ parameters.AppSourceDir }}'
+          AppNamespace: '${{ parameters.AppNamespace }}'

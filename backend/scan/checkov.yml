@@ -15,10 +15,34 @@ steps:
       echo "Checkov scan complete."
     displayName: 'Checkov Docker Scan'
 
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Get helm Manifest'
+    inputs:
+      artifactName: '${{ parameters.AppName }}-mainfest.yaml'
+      path: '$(Agent.TempDirectory)'
+
+  - script: |
+      mkdir -p $(Agent.TempDirectory)/checkov-helm-results/${{ parameters.AppName }}/$(Build.BuildId)
+      checkov -f $(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml \
+        --framework kubernetes \
+        --output cli \
+        --output junitxml \
+        --output-file $(Agent.TempDirectory)/checkov-helm-results/${{ parameters.AppName }}/$(Build.BuildId)/
+      echo "Checkov scan complete."
+    displayName: 'Checkov Helm Scan'
+
   - task: PublishTestResults@2
-    displayName: 'Publish Checkov Results'
+    displayName: 'Publish Docker Scan'
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: '$(Agent.TempDirectory)/checkov-docker-results/${{ parameters.AppName }}/$(Build.BuildId)/results_junitxml.xml'
       testRunTitle: 'Checkov Docker Scan'
+    condition: succeededOrFailed()
+
+  - task: PublishTestResults@2
+    displayName: 'Publish Helm Scan'
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '$(Agent.TempDirectory)/checkov-helm-results/${{ parameters.AppName }}/$(Build.BuildId)/results_junitxml.xml'
+      testRunTitle: 'Checkov Helm Scan'
     condition: succeededOrFailed()

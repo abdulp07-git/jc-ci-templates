@@ -37,7 +37,7 @@ steps:
       publish: true
 
   - task: PublishTestResults@2
-    displayName: 'Publish Trivy Results'
+    displayName: 'Publish Repo Scan'
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: |
@@ -47,7 +47,7 @@ steps:
       publishRunAttachments: false
 
   - task: PublishTestResults@2
-    displayName: 'Publish Trivy Results'
+    displayName: 'Publish Docker Scan'
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: |

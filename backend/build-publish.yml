@@ -3,7 +3,9 @@ parameters:
     type: string
   - name: AppSourceDir
     type: string
-
+  - name: AppNamespace
+    type: string
+    
 jobs:
 - job: build
   displayName: 'Build and Publish'
@@ -24,3 +26,19 @@ jobs:
   - script: |
       docker push $(AcrName)/${{ parameters.AppName }}:$(Build.BuildNumber)
     displayName: 'Publish Image'
+  
+  - script: |
+      helm template \
+            -f .helm/values.yaml \
+            --set appVersion=$(Build.BuildNumber) \
+            --set registry=$(AcrName) \
+            --set appNamespace=${{ parameters.AppNamespace }} \
+            .helm >> $(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml
+    displayName: 'Create Manifest'
+            
+  - task: PublishBuildArtifacts@1
+    enabled: true
+    displayName: 'Publish Manifest'
+    inputs:
+      ArtifactName: '${{ parameters.AppName }}-mainfest.yaml'
+      PathtoPublish: '$(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml'
