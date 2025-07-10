@@ -26,6 +26,18 @@ jobs:
   - script: |
       docker push $(AcrName)/${{ parameters.AppName }}:$(Build.BuildNumber)
     displayName: 'Publish Image'
+
+  - task: Docker@2
+    displayName: 'Docker build celery'
+    inputs:
+      command: 'build'
+      Dockerfile: '${{ parameters.AppSourceDir }}/Dockerfile-celery'
+      repository: '$(AcrName)/${{ parameters.AppName }}-celery'
+      tags: '$(Build.BuildNumber)'
+      
+  - script: |
+      docker push $(AcrName)/${{ parameters.AppName }}-celery:$(Build.BuildNumber)
+    displayName: 'Publish Celery Image'
   
   - script: |
       helm template \
