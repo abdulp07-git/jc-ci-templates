@@ -42,6 +42,7 @@ jobs:
   - script: |
       helm template \
             -f .helm/values.yaml \
+            -f .helm/values-celery.yaml \
             --set appVersion=$(Build.BuildNumber) \
             --set registry=$(AcrName) \
             --set appNamespace=${{ parameters.AppNamespace }} \
