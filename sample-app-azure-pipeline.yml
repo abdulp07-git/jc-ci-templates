@@ -14,5 +14,7 @@ extends:
   template: backend/main.yml@ci-templates
   parameters:
     AppName: 'testapp'
+    AppNameCelery: 'celery-testapp'
     AppSourceDir: 'test'
     AppNamespace: 'shopping'
+    

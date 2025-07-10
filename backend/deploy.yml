@@ -1,6 +1,8 @@
 parameters:
   - name: AppName
     type: string
+  - name: AppNameCelery
+    type: string
   - name: AppSourceDir
     type: string
   - name: AppNamespace
@@ -28,7 +30,18 @@ jobs:
                 artifactName: '${{ parameters.AppName }}-mainfest.yaml'
                 path: '$(Agent.TempDirectory)'
 
+            - task: DownloadPipelineArtifact@2
+              displayName: 'Get helm Manifest for celery'
+              inputs:
+                artifactName: '${{ parameters.AppNameCelery }}-mainfest.yaml'
+                path: '$(Agent.TempDirectory)'
+
             - script: |
                 kubectl apply -f $(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml
                 kubectl rollout status deployment/${{ parameters.AppName }} -n ${{ parameters.AppNamespace }} --watch=true --timeout=10m
               displayName: 'Deploy to AKS'
+
+            - script: |
+                kubectl apply -f $(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml
+                kubectl rollout status deployment/${{ parameters.AppNameCelery }} -n ${{ parameters.AppNamespace }} --watch=true --timeout=10m
+              displayName: 'Deploy Celery to AKS'

@@ -1,6 +1,8 @@
 parameters:
   - name: AppName
     type: string
+  - name: AppNameCelery
+    type: string
   - name: AppSourceDir
     type: string
   - name: AppNamespace
@@ -35,10 +37,32 @@ jobs:
             --set appNamespace=${{ parameters.AppNamespace }} \
             .helm >> $(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml
     displayName: 'Create Manifest'
+
+
+  - task: Docker@2
+    displayName: 'Docker build Celery'
+    inputs:
+      command: 'build'
+      Dockerfile: '${{ parameters.AppSourceDir }}/Dockerfile-celery'
+      repository: '$(AcrName)/${{ parameters.AppNameCelery }}'
+      tags: '$(Build.BuildNumber)'
+      
+  - script: |
+      docker push $(AcrName)/${{ parameters.AppNameCelery }}:$(Build.BuildNumber)
+    displayName: 'Publish Celery Image'
+  
+  - script: |
+      helm template \
+            -f .helm/values.yaml \
+            --set appVersion=$(Build.BuildNumber) \
+            --set registry=$(AcrName) \
+            --set appNamespace=${{ parameters.AppNamespace }} \
+            .helm >> $(Agent.TempDirectory)/${{ parameters.AppNameCelery }}-mainfest.yaml
+    displayName: 'Create Celery Manifest'
             
   - task: PublishBuildArtifacts@1
     enabled: true
-    displayName: 'Publish Manifest'
+    displayName: 'Publish Celery Manifest'
     inputs:
-      ArtifactName: '${{ parameters.AppName }}-mainfest.yaml'
-      PathtoPublish: '$(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml'
+      ArtifactName: '${{ parameters.AppNameCelery }}-mainfest.yaml'
+      PathtoPublish: '$(Agent.TempDirectory)/${{ parameters.AppNameCelery }}-mainfest.yaml'
