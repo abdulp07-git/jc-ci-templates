@@ -7,7 +7,7 @@ parameters:
     type: string
 
 variables:
-  - group: jc-infra-vars
+  - group: jc-devops-vars
   - name: AcrName
     value: jcapp2025.azurecr.io
   - name: DOCKER_BUILDKIT
