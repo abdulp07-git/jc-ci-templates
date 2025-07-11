@@ -8,7 +8,7 @@ resources:
 trigger:
   - pipeline
 
-pool: agent-pool
+pool: jc-agentpool
 
 extends:
   template: backend/main.yml@ci-templates
