@@ -24,11 +24,13 @@ stages:
           AppName: '${{ parameters.AppName }}'
           AppSourceDir: '${{ parameters.AppSourceDir }}'
           AppNamespace: '${{ parameters.AppNamespace }}'
+          AppNameCelery: '${{ parameters.AppNameCelery }}'
 
       - template: scan-analyse.yml
         parameters:
           AppName: '${{ parameters.AppName }}'
           AppSourceDir: '${{ parameters.AppSourceDir }}'
+        
 
   - stage: Deploy_dev
     dependsOn: Build
@@ -39,6 +41,7 @@ stages:
           AppName: '${{ parameters.AppName }}'
           AppSourceDir: '${{ parameters.AppSourceDir }}'
           AppNamespace: '${{ parameters.AppNamespace }}'
+          AppNameCelery: '${{ parameters.AppNameCelery }}'
           AksEnv: 'dev'
 
   - stage: Deploy_qa
@@ -50,6 +53,7 @@ stages:
           AppName: '${{ parameters.AppName }}'
           AppSourceDir: '${{ parameters.AppSourceDir }}'
           AppNamespace: '${{ parameters.AppNamespace }}'
+          AppNameCelery: '${{ parameters.AppNameCelery }}'
           AksEnv: 'qa'
 
   - stage: Deploy_prod
@@ -61,4 +65,5 @@ stages:
           AppName: '${{ parameters.AppName }}'
           AppSourceDir: '${{ parameters.AppSourceDir }}'
           AppNamespace: '${{ parameters.AppNamespace }}'
+          AppNameCelery: '${{ parameters.AppNameCelery }}'
           AksEnv: 'prod'
