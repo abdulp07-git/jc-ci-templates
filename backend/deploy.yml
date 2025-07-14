@@ -42,6 +42,6 @@ jobs:
               displayName: 'Deploy to AKS'
 
             - script: |
-                kubectl apply -f $(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml
+                kubectl apply -f $(Agent.TempDirectory)/${{ parameters.AppNameCelery }}-mainfest.yaml
                 kubectl rollout status deployment/${{ parameters.AppNameCelery }} -n ${{ parameters.AppNamespace }} --watch=true --timeout=10m
               displayName: 'Deploy Celery to AKS'
