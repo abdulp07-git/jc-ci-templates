@@ -50,7 +50,7 @@ jobs:
     displayName: 'Docker build Celery'
     inputs:
       command: 'build'
-      Dockerfile: '${{ parameters.AppSourceDir }}/Dockerfile-celery'
+      Dockerfile: '${{ parameters.AppSourceDir }}/Dockerfile.celery'
       repository: '$(AcrName)/${{ parameters.AppNameCelery }}'
       tags: '$(Build.BuildNumber)'
       
