@@ -64,8 +64,8 @@ jobs:
             --set appVersion=$(Build.BuildNumber) \
             --set registry=$(AcrName) \
             --set appNamespace=${{ parameters.AppNamespace }} \
-            --set ingress.enabled=false \          # Disabling ingress
-            --set livenessProbe.enabled=false \     # Disabling liveness probe
+            --set ingress.enabled=false \        
+            --set livenessProbe.enabled=false \
             --set readinessProbe.enabled=false \
             .helm-celery >> $(Agent.TempDirectory)/${{ parameters.AppNameCelery }}-mainfest.yaml
     displayName: 'Create Celery Manifest'
