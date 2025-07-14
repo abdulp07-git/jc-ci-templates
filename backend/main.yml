@@ -5,6 +5,8 @@ parameters:
     type: string
   - name: AppNamespace
     type: string
+  - name: AppNameCelery
+    type: string
 
 variables:
   - group: jc-devops-vars
