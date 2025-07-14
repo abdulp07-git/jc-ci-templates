@@ -37,6 +37,13 @@ jobs:
             --set appNamespace=${{ parameters.AppNamespace }} \
             .helm >> $(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml
     displayName: 'Create Manifest'
+  
+  - task: PublishBuildArtifacts@1
+    enabled: true
+    displayName: 'Publish Manifest'
+    inputs:
+      ArtifactName: '${{ parameters.AppName }}-mainfest.yaml'
+      PathtoPublish: '$(Agent.TempDirectory)/${{ parameters.AppName }}-mainfest.yaml'
 
 
   - task: Docker@2
@@ -57,6 +64,9 @@ jobs:
             --set appVersion=$(Build.BuildNumber) \
             --set registry=$(AcrName) \
             --set appNamespace=${{ parameters.AppNamespace }} \
+            --set ingress.enabled=false \          # Disabling ingress
+            --set livenessProbe.enabled=false \     # Disabling liveness probe
+            --set readinessProbe.enabled=false \
             .helm >> $(Agent.TempDirectory)/${{ parameters.AppNameCelery }}-mainfest.yaml
     displayName: 'Create Celery Manifest'
             
