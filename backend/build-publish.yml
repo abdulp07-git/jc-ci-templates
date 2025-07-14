@@ -60,14 +60,14 @@ jobs:
   
   - script: |
       helm template \
-            -f .helm/values.yaml \
+            -f .helm-celery/values.yaml \
             --set appVersion=$(Build.BuildNumber) \
             --set registry=$(AcrName) \
             --set appNamespace=${{ parameters.AppNamespace }} \
             --set ingress.enabled=false \          # Disabling ingress
             --set livenessProbe.enabled=false \     # Disabling liveness probe
             --set readinessProbe.enabled=false \
-            .helm >> $(Agent.TempDirectory)/${{ parameters.AppNameCelery }}-mainfest.yaml
+            .helm-celery >> $(Agent.TempDirectory)/${{ parameters.AppNameCelery }}-mainfest.yaml
     displayName: 'Create Celery Manifest'
             
   - task: PublishBuildArtifacts@1
