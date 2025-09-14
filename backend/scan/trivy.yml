@@ -20,7 +20,7 @@ steps:
       scanners: 'misconfig,vuln,secret'
       ignoreUnfixed: true
       ignoreScanErrors: true
-      reports: 'junit'
+      reports: 'junit,html'
       publish: true
 
   - task: trivy@2
@@ -33,11 +33,12 @@ steps:
       scanners: 'misconfig,vuln,secret'
       ignoreUnfixed: true
       ignoreScanErrors: true
-      reports: 'junit'
+      reports: 'junit,html'
       publish: true
 
+  # Publish JUnit test results
   - task: PublishTestResults@2
-    displayName: 'Publish Repo Scan'
+    displayName: 'Publish Repo Scan Results'
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: |
@@ -47,7 +48,7 @@ steps:
       publishRunAttachments: false
 
   - task: PublishTestResults@2
-    displayName: 'Publish Docker Scan'
+    displayName: 'Publish Docker Scan Results'
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: |
@@ -55,3 +56,36 @@ steps:
       searchFolder: '$(Agent.TempDirectory)'
       testRunTitle: 'Trivy Docker Scan'
       publishRunAttachments: false
+
+  # Publish HTML reports as build artifacts
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Repo HTML Report'
+    inputs:
+      pathToPublish: '$(TrivyRepo.htmlReport)'
+      artifactName: 'trivy-repo-html-report'
+      publishLocation: 'Container'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Docker HTML Report'
+    inputs:
+      pathToPublish: '$(TrivyDocker.htmlReport)'
+      artifactName: 'trivy-docker-html-report'
+      publishLocation: 'Container'
+
+  # Optional: Copy reports to a more accessible location
+  - task: CopyFiles@2
+    displayName: 'Copy HTML Reports'
+    inputs:
+      sourceFolder: '$(Agent.TempDirectory)'
+      contents: |
+        $(TrivyRepo.htmlReport)
+        $(TrivyDocker.htmlReport)
+      targetFolder: '$(Build.ArtifactStagingDirectory)/trivy-reports'
+      flattenFolders: false
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish All Trivy Reports'
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)/trivy-reports'
+      artifactName: 'trivy-security-reports'
+      publishLocation: 'Container'

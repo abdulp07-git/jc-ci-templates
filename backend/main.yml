@@ -5,6 +5,12 @@ parameters:
     type: string
   - name: AppNamespace
     type: string
+  - name: ProjectName
+    type: string
+  - name: ProjectKey
+    type: string 
+  - name: ApiURL
+    type: string
 
 variables:
   - group: jc-devops-vars
@@ -14,6 +20,16 @@ variables:
     value: 1
 
 stages:
+  - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/develop') }}:
+    - stage: SonarOwaspGitleak
+      displayName: 'Sonar, owasp & gitle scan'
+      jobs:
+        - template: sonar-owasp-gitleak.yml
+          parameters:
+            ProjectName: '${{ parameters.ProjectName }}'
+            ProjectKey: '${{ parameters.ProjectKey }}'
+          
+
   - stage: Build
     displayName: 'Build and Scan'
     jobs:
@@ -25,38 +41,45 @@ stages:
 
       - template: scan-analyse.yml
         parameters:
-          AppName: '${{ parameters.AppName }}'
-          AppSourceDir: '${{ parameters.AppSourceDir }}'
+         AppName: '${{ parameters.AppName }}'
+         AppSourceDir: '${{ parameters.AppSourceDir }}'
+  # - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/develop') }}:
 
-  - stage: Deploy_dev
-    dependsOn: Build
-    displayName: 'Deploy to Dev'
-    jobs:
-      - template: deploy.yml
-        parameters:
-          AppName: '${{ parameters.AppName }}'
-          AppSourceDir: '${{ parameters.AppSourceDir }}'
-          AppNamespace: '${{ parameters.AppNamespace }}'
-          AksEnv: 'dev'
+  
+  - ${{ if or(eq(variables['Build.SourceBranch'], 'refs/heads/develop'), eq(variables['Build.SourceBranch'], 'refs/heads/release/qa')) }}:
+    - stage: Deploy_dev
+      dependsOn: Build
+      displayName: 'Deploy to Dev'
+      jobs:
+        - template: deploy.yml
+          parameters:
+            AppName: '${{ parameters.AppName }}'
+            AppSourceDir: '${{ parameters.AppSourceDir }}'
+            AppNamespace: '${{ parameters.AppNamespace }}'
+            AksEnv: 'dev'
 
-  - stage: Deploy_qa
-    dependsOn: Deploy_dev
-    displayName: 'Deploy to Qa'
-    jobs:
-      - template: deploy.yml
-        parameters:
-          AppName: '${{ parameters.AppName }}'
-          AppSourceDir: '${{ parameters.AppSourceDir }}'
-          AppNamespace: '${{ parameters.AppNamespace }}'
-          AksEnv: 'qa'
 
-  - stage: Deploy_prod
-    dependsOn: Deploy_qa
-    displayName: 'Deploy to Prod'
-    jobs:
-      - template: deploy.yml
-        parameters:
-          AppName: '${{ parameters.AppName }}'
-          AppSourceDir: '${{ parameters.AppSourceDir }}'
-          AppNamespace: '${{ parameters.AppNamespace }}'
-          AksEnv: 'prod'
+  - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/release/uat') }}:
+    - stage: Deploy_uat
+      dependsOn: Build
+      displayName: 'Deploy to UAT'
+      jobs:
+        - template: deploy.yml
+          parameters:
+            AppName: '${{ parameters.AppName }}'
+            AppSourceDir: '${{ parameters.AppSourceDir }}'
+            AppNamespace: '${{ parameters.AppNamespace }}'
+            AksEnv: 'uat'
+
+  - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/develop') }}:
+    - stage: owaspzap
+      dependsOn: Deploy_dev
+      displayName: 'owasp-zap baseline scan'
+      jobs:
+        - template: owasp-zap.yml
+          parameters:
+            ApiURL: '${{parameters.ApiURL}}'
+    
+  
+
+  

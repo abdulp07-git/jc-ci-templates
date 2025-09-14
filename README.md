@@ -1,3 +1,7 @@
+v1.0.0 - Normal service
+v1.0.1 - Service with celery
+v1.0.2 - Service with Jobs
+frontend - Admin FE and client FE
 # Introduction 
 TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
 

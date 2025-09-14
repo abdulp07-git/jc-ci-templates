@@ -4,8 +4,7 @@ parameters:
   - name: AppSourceDir
     type: string
   - name: AppNamespace
-    type: string
-    
+    type: string   
 jobs:
 - job: build
   displayName: 'Build and Publish'
