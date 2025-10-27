@@ -39,11 +39,12 @@ stages:
           AppSourceDir: '${{ parameters.AppSourceDir }}'
           AppNamespace: '${{ parameters.AppNamespace }}'
 
+      #- ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/develop') }}:
       - template: scan-analyse.yml
         parameters:
-         AppName: '${{ parameters.AppName }}'
-         AppSourceDir: '${{ parameters.AppSourceDir }}'
-  # - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/develop') }}:
+          AppName: '${{ parameters.AppName }}'
+          AppSourceDir: '${{ parameters.AppSourceDir }}'
+  # 
 
   
   - ${{ if or(eq(variables['Build.SourceBranch'], 'refs/heads/develop'), eq(variables['Build.SourceBranch'], 'refs/heads/release/qa')) }}:

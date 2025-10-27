@@ -9,6 +9,11 @@ steps:
       az login --identity
       az acr login --name $(AcrName)
     displayName: 'ACR Login'
+
+  - script: |
+      docker system prune -a -f --volumes
+      df -h  # Check available space
+    displayName: 'Cleanup Docker resources'
     
   - task: trivy@2
     name: TrivyRepo

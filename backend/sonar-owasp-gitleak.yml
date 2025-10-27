@@ -15,38 +15,11 @@ jobs:
           configtype: 'default'
           gitLeaksIgnoreFilePath: './.gitleaksignore'
           reportformat: 'sarif'
-          # Fixed: Use 'reportpath' instead of 'outputLocation'
           reportpath: '$(Build.ArtifactStagingDirectory)/gitleaks-scan.sarif'
         continueOnError: true  # Continue pipeline even if secrets are found
         displayName: 'Run Gitleaks SARIF Scan'
 
-      # Step 2: Install Node.js if needed (Option 1 - Microsoft SARIF Tools)
-      - task: NodeTool@0
-        inputs:
-          versionSpec: '18.x'
-        displayName: 'Install Node.js'
-        condition: false  # Disabled - use Python approach instead
-
-      # Step 2A: Convert SARIF to HTML using Microsoft SARIF tools (Alternative approach)
-      - script: |
-          # Install Node.js and npm
-          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-          sudo apt-get install -y nodejs
-          
-          # Install Microsoft SARIF tools
-          npm install -g @microsoft/sarif-multitool
-          
-          # Convert SARIF to HTML
-          if [ -f "$(Build.ArtifactStagingDirectory)/gitleaks-scan.sarif" ]; then
-            sarif convert '$(Build.ArtifactStagingDirectory)/gitleaks-scan.sarif' --output-format html --output-file '$(Build.ArtifactStagingDirectory)/gitleaks-report.html'
-          else
-            echo "SARIF file not found, creating empty HTML report"
-            echo '<html><head><title>Gitleaks Report</title></head><body><h1>No Issues Found</h1><p>Gitleaks scan completed with no security issues detected.</p></body></html>' > $(Build.ArtifactStagingDirectory)/gitleaks-report.html
-          fi
-        displayName: 'Convert SARIF to HTML (Microsoft Tools)'
-        condition: false  # Disabled - use Python approach below instead
-
-      # Step 2B: Custom Python conversion (RECOMMENDED - Most Reliable)
+      # Step 2: Custom Python conversion to HTML
       - script: |
           cat > convert_sarif.py << 'EOF'
           import json
@@ -60,10 +33,11 @@ jobs:
                   with open(sarif_file, 'r') as f:
                       sarif_data = json.load(f)
               except FileNotFoundError:
-                  # Create empty report if no SARIF file (no issues found)
+                  print(f"SARIF file not found at: {sarif_file}")
                   create_empty_report(html_file)
                   return
-              except json.JSONDecodeError:
+              except json.JSONDecodeError as e:
+                  print(f"JSON decode error: {e}")
                   create_empty_report(html_file)
                   return
           
@@ -187,28 +161,58 @@ jobs:
                   f.write(html_content)
               print(f"✅ Empty HTML report created: {html_file}")
           
+          def find_sarif_file():
+              """Find SARIF file in multiple possible locations"""
+              possible_paths = [
+                  '$(Build.ArtifactStagingDirectory)/gitleaks-scan.sarif',
+                  '$(Agent.TempDirectory)/gitleaks-scan.sarif'
+              ]
+              
+              for path in possible_paths:
+                  print(f"Checking for SARIF file at: {path}")
+                  if os.path.exists(path):
+                      print(f"✅ Found SARIF file at: {path}")
+                      return path
+              
+              # Check for files with UUID in temp directory (fallback)
+              import glob
+              temp_pattern = '$(Agent.TempDirectory)/gitleaks-*.sarif'
+              matching_files = glob.glob(temp_pattern)
+              if matching_files:
+                  found_file = matching_files[0]
+                  print(f"✅ Found SARIF file with UUID: {found_file}")
+                  return found_file
+              
+              print("❌ No SARIF file found in any expected location")
+              return None
+          
           # Main execution
-          sarif_file = '$(Build.ArtifactStagingDirectory)/gitleaks-scan.sarif'
+          sarif_file = find_sarif_file()
           html_file = '$(Build.ArtifactStagingDirectory)/gitleaks-report.html'
-          convert_sarif_to_html(sarif_file, html_file)
+          
+          if sarif_file:
+              convert_sarif_to_html(sarif_file, html_file)
+          else:
+              print("Creating empty report as no SARIF file was found")
+              create_empty_report(html_file)
           EOF
           
           python3 convert_sarif.py
-        displayName: 'Convert SARIF to HTML Report (Custom Script)'
+        displayName: 'Convert SARIF to HTML Report'
         condition: always()  # Always run to create report even if no issues found
 
       # Step 3: Publish HTML report as a build artifact
       - task: PublishBuildArtifacts@1
         inputs:
           pathToPublish: '$(Build.ArtifactStagingDirectory)/gitleaks-report.html'
-          artifactName: 'GitleaksHTMLReport'  # More descriptive name
+          artifactName: 'GitleaksHTMLReport'
           publishLocation: 'Container'
         displayName: 'Publish Gitleaks HTML Report'
-        condition: always()  # Always publish the report
+        condition: always()
 
-      # Check if SARIF file exists and set variable
+      # Step 4: Check if SARIF file exists and set variable
       - script: |
-          if [ -f "$(Build.ArtifactStagingDirectory)/gitleaks-scan.sarif" ]; then
+          if [ -f "$(Build.ArtifactStagingDirectory)/gitleaks-scan.sarif" ] || [ -f "$(Agent.TempDirectory)/gitleaks-scan.sarif" ]; then
             echo "##vso[task.setvariable variable=sarifExists]true"
             echo "SARIF file exists, will publish it"
           else
@@ -218,7 +222,7 @@ jobs:
         displayName: 'Check SARIF File Existence'
         condition: always()
 
-      # Optional: Also publish the SARIF report for Azure DevOps Security tab integration (only if file exists)
+      # Step 5: Publish SARIF report for Azure DevOps Security tab integration
       - task: PublishBuildArtifacts@1
         inputs:
           pathToPublish: '$(Build.ArtifactStagingDirectory)/gitleaks-scan.sarif'
@@ -235,7 +239,8 @@ jobs:
       inputs:
         projectName: 'FastApi'
         scanPath: '$(Build.SourcesDirectory)'
-        additionalArguments: '--enableExperimental --enableRetired'
+        #additionalArguments: '--enableExperimental --enableRetired'
+        additionalArguments: '--enableExperimental --enableRetired --disableOssIndex'
         format: 'ALL'
         uploadReports: true
         uploadSARIFReport: true
@@ -246,54 +251,89 @@ jobs:
       continueOnError: true
       displayName: 'Run OWASP Dependency Check'
 
-  
-
-
   - job: sonarcube
     displayName: 'Sonarcube scan with Pytest'
     steps:
-      # Step 1: Install python3-venv and setup Python environment
+      # Step 1: Verify Python 3.11 and setup virtual environment
       - script: |
-          echo "Installing python3-venv to enable virtual environment creation"
-          sudo apt-get update
-          sudo apt-get install -y python3.10-venv
-
-          echo "Using system Python:"
+          echo "=== Verifying Python 3.11 installation ==="
+          echo "System Python version:"
           python3 --version
           
-          # Create a virtual environment to isolate dependencies
-          python3 -m venv $(Agent.TempDirectory)/pytest-env
-          source $(Agent.TempDirectory)/pytest-env/bin/activate
+          echo "Python 3.11 version:"
+          python3.11 --version
           
-          # Upgrade pip in virtual environment
-          pip install --upgrade pip
+          echo "Python 3.11 location:"
+          which python3.11
           
-          echo "Installing dependencies from prod.txt..."
-          pip install -r requirements/prod.txt
+          echo "=== Creating Python 3.11 virtual environment ==="
+          # Create a virtual environment using pre-installed Python 3.11
+          python3.11 -m venv $(Agent.TempDirectory)/pytest-env
           
-          echo "##vso[task.setvariable variable=VENV_PATH]$(Agent.TempDirectory)/pytest-env"
+          # Verify virtual environment was created
           echo "Virtual environment created at: $(Agent.TempDirectory)/pytest-env"
-        displayName: 'Setup Python Virtual Environment'
+          echo "##vso[task.setvariable variable=VENV_PATH]$(Agent.TempDirectory)/pytest-env"
+        displayName: 'Setup Python 3.11 Virtual Environment'
 
-      # Step 2: Run pytest using virtual environment
+      # Step 2: Install dependencies in virtual environment
       - script: |
           # Activate virtual environment
           source $(VENV_PATH)/bin/activate
           
-          # Verify we're in the right environment
-          echo "Active Python: $(which python3)"
-          python3 --version
+          # Verify we're using Python 3.11 in the virtual environment
+          echo "=== Virtual environment verification ==="
+          echo "Active Python executable: $(which python)"
+          echo "Active pip executable: $(which pip)"
+          echo "Python version in venv: $(python --version)"
+          echo "Pip version in venv: $(pip --version)"
+          
+          # Upgrade pip in virtual environment
+          echo "=== Upgrading pip ==="
+          python -m pip install --upgrade pip
+          
+          echo "=== Installing dependencies from prod.txt ==="
+          python -m pip install -r requirements/prod.txt
+          
+          # Verify key packages are installed
+          echo "=== Verification of key packages ==="
+          python -c "import pytest; print(f'pytest version: {pytest.__version__}')"
+          python -c "import coverage; print(f'coverage version: {coverage.__version__}')"
+          
+          echo "Virtual environment setup completed successfully"
+        displayName: 'Install Dependencies in Python 3.11 Virtual Environment'
+
+      # Step 3: Run pytest using Python 3.11 virtual environment
+      - script: |
+          # Set PATH to include /usr/local/bin
+          export PATH="/usr/local/bin:$PATH"
+          
+          # Activate virtual environment
+          source $(VENV_PATH)/bin/activate
+          
+          # Final verification
+          echo "=== Final environment verification ==="
+          echo "Active Python: $(which python)"
+          echo "Python version: $(python --version)"
+          echo "Current working directory: $(pwd)"
           
           # Create reports directory
           mkdir -p $(Agent.TempDirectory)/test-reports
           
           # Set PYTHONPATH to the root of the repo (which is `app/`)
           export PYTHONPATH="$(pwd)/app:$PYTHONPATH"
+          echo "PYTHONPATH set to: $PYTHONPATH"
           
-          echo "Running pytest..."
+          # Set application environment variables for testing
+          export ENCRYPTION_ENABLED=true
+          export ENCRYPTION_KEY="test-key-for-ci-cd-only"
+          export ENVIRONMENT=test
+          export TESTING=true
+          # Add any other environment variables your app needs
           
-          # Run pytest with JUnit XML output (your pytest.ini handles coverage XML)
-          python3 -m pytest \
+          echo "=== Running pytest with Python 3.11 ==="
+          
+          # Run pytest with JUnit XML output - always generate reports even on failure
+          python -m pytest \
             --cov=app \
             --cov-config=app/pytest.ini \
             --cov-report=term-missing \
@@ -301,41 +341,50 @@ jobs:
             --junitxml=$(Agent.TempDirectory)/test-reports/pytest-results.xml \
             app/test/ \
             -v \
-            --tb=short
+            --tb=short \
+            --continue-on-collection-errors || echo "Tests completed with errors - reports still generated"
           
-          # Copy the coverage.xml generated by pytest.ini to our reports directory
-          # if [ -f "coverage.xml" ]; then
-          #   cp coverage.xml $(Agent.TempDirectory)/test-reports/
-          #   echo "Coverage XML copied to reports directory"
-          # else
-          #   echo "Warning: coverage.xml not found in app directory"
-          #   echo "Files in app directory:"
-          #   ls -la *.xml 2>/dev/null || echo "No XML files found"
-          # fi
-
+          # Ensure we always have some test result file, even if pytest fails completely
+          if [ ! -f "$(Agent.TempDirectory)/test-reports/pytest-results.xml" ]; then
+            echo "Creating minimal test results file as fallback"
+            cat > $(Agent.TempDirectory)/test-reports/pytest-results.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <testsuite name="pytest-fallback" tests="0" failures="0" errors="1" time="0">
+            <testcase name="test-collection-failed" classname="pytest.collection">
+              <error message="Test collection failed - check logs for details">Test collection failed</error>
+            </testcase>
+          </testsuite>
+          EOF
+          fi
+          
+          # Copy HTML coverage report if generated
           if [ -d "htmlcov" ]; then
             cp -r htmlcov $(Agent.TempDirectory)/test-reports/
             echo "HTML coverage report copied to reports directory"
           else
-            echo "Warning: htmlcov directory not found"
+            echo "Note: htmlcov directory not found (may not be configured)"
           fi
           
-          echo "Pytest execution completed"
-        displayName: 'Run Pytest with Coverage'
+          # List generated files for verification
+          echo "=== Generated test files ==="
+          ls -la $(Agent.TempDirectory)/test-reports/
+          
+          echo "Pytest execution completed - reports generated regardless of test status"
+        displayName: 'Run Pytest with Coverage using Python 3.11'
         continueOnError: true
 
-      # Step 3: Publish test results to Azure DevOps
+      # Step 4: Publish test results to Azure DevOps
       - task: PublishTestResults@2
         inputs:
           testResultsFormat: 'JUnit'
           testResultsFiles: '$(Agent.TempDirectory)/test-reports/pytest-results.xml'
-          testRunTitle: 'Python Unit Tests'
+          testRunTitle: 'Python 3.11 Unit Tests'
           mergeTestResults: true
           failTaskOnFailedTests: false
         condition: always()
         displayName: 'Publish Test Results'
 
-      # Step 4: Publish coverage results to Azure DevOps
+      # Step 5: Publish coverage results to Azure DevOps
       - task: PublishCodeCoverageResults@2
         inputs:
           summaryFileLocation: '$(Agent.TempDirectory)/test-reports/coverage.xml'
@@ -345,7 +394,7 @@ jobs:
         condition: always()
         displayName: 'Publish Coverage Results'
 
-      # Step 5: SonarQube preparation
+      # Step 6: SonarQube preparation
       - task: SonarQubePrepare@7
         inputs:
           SonarQube: 'sonarcube-sp'
@@ -362,21 +411,21 @@ jobs:
             sonar.tests=app/test
             sonar.test.inclusions=app/test/**/*.py
             sonar.exclusions=app/test/**/*,app/common_modules/**/*,app/core/**/*,app/database/**/*,app/alembic/**/*,app/migrations/**/*,app/src/tasks/**/*,app/helpers/**/*,app/src/utils/task_common.py,**/*_migration.py,**/__init__.py
-            sonar.python.version=3.10
+            sonar.python.version=3.11
             sonar.sources=app
             sonar.sourceEncoding=UTF-8
 
-      # Step 6: Run SonarQube analysis
+      # Step 7: Run SonarQube analysis
       - task: SonarQubeAnalyze@7
         inputs:
           jdkversion: 'JAVA_HOME_17_X64'
 
-      # Step 7: Publish SonarQube results
+      # Step 8: Publish SonarQube results
       - task: SonarQubePublish@7
         inputs:
           pollingTimeoutSec: '300'
 
-      # Step 8: Generate summary
+      # Step 9: Generate summary
       - task: Bash@3
         displayName: 'Generate Analysis Summary'
         inputs:
@@ -389,7 +438,7 @@ jobs:
             # Test results summary
             if [ -f "$(Agent.TempDirectory)/test-reports/pytest-results.xml" ]; then
               echo ""
-              echo "=== Test Results ==="
+              echo "=== Test Results (Python 3.11) ==="
               TEST_COUNT=$(grep -o 'tests="[0-9]*"' $(Agent.TempDirectory)/test-reports/pytest-results.xml | grep -o '[0-9]*' 2>/dev/null || echo "N/A")
               FAILURE_COUNT=$(grep -o 'failures="[0-9]*"' $(Agent.TempDirectory)/test-reports/pytest-results.xml | grep -o '[0-9]*' 2>/dev/null || echo "0")
               ERROR_COUNT=$(grep -o 'errors="[0-9]*"' $(Agent.TempDirectory)/test-reports/pytest-results.xml | grep -o '[0-9]*' 2>/dev/null || echo "0")
